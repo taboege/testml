@@ -1,0 +1,33 @@
+=== Spec Example 7.17. Flow Mapping Separate Values
+--- from: http://www.yaml.org/spec/1.2/spec.html#id2791704
+--- tags: spec flow mapping
+
+--- in-yaml
+{
+unquoted : "separate",
+http://foo.com,
+omitted value:,
+: omitted key,
+}
+
+--- out-yaml
+unquoted: "separate"
+http://foo.com: null
+omitted value: null
+null: omitted key
+
+--- test-event
++STR
++DOC
++MAP
+=VAL :unquoted
+=VAL "separate
+=VAL :http://foo.com
+=VAL :
+=VAL :omitted value
+=VAL :
+=VAL :
+=VAL :omitted key
+-MAP
+-DOC
+-STR

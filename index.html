@@ -1,0 +1,125 @@
+<script src="https://unpkg.com/testml-compiler/lib/testml-compiler/browser.js"></script>
+<script src="testml-compiler/lib/testml-compiler/browser.js"></script>
+<script src="https://unpkg.com/lodash/lodash.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+
+
+<h2>TestML Compiler Interactive Demo</h2>
+<div id="nav">
+<!-- input id="update" type="button" value="Recompile" onclick="compileTestML()" /-->
+<select id="yaml" onchange="setYAMLTest(this.value)"><option>YAML Test Suite</option></select>
+</div>
+
+<textarea id="input"></textarea>
+<textarea id="output"></textarea>
+<br>
+<div id="explanation">
+This is an interactive demo for the TestML Compiler. You can change the TestML
+on the left side and it will auto-recompile into the right side. If the
+compilation fails it will show the error message.<br><br>
+
+You can also trying compiling all of the TestML files that are in the <a
+href="https://github.com/yaml/yaml-test-suite/tree/testml-new/test">YAML Test
+Suite</a> by choosing a test from the drop down menu.<br><br>
+
+<a href="https://github.com/testml-lang/testml-compiler">Fork me on GitHub</a><br><br>
+
+Check out <a href="https://testml-lang.github.io/testml/">TestML Running in Browser</a>!<br><br>
+</div>
+
+
+<script>
+sample_testml = `\
+# A simple testml file
+
+# For test frameworks that support planning:
+Plan = 3
+
+
+# Assertion loops:
+*input.get-sha1 == *sha1
+*input.get-md5 == *md5
+
+
+# Test data blocks:
+=== Test 1
+--- input: I like pie.
+--- sha1: 5f30adb9864439315a33e1a6631358164f94cc20
+
+=== Test 2
+--- input
+I like pie.
+--- sha1: 53b3de1f1d480989d391f24a8886d291773347a7
+--- md5: 29a529ed285c7f5cd6c3bff4b3bb7626
+`
+$('#input').focus()
+$("#input")[0].setSelectionRange(0,0)
+
+function compileTestML() {
+  var input = $('#input')[0].value
+  var output
+
+  try {
+    output = (new TestMLCompiler.Compiler).compile(input)
+  }
+  catch(e) {
+    output = String(e)
+  }
+
+  $('#output')[0].value = output
+
+  $('#input').focus()
+}
+
+function setYAMLTest(id) {
+  $.get("yaml/" + id + ".tml", function(text) {
+    $('#input')[0].value = text
+    setTimeout(function() {
+      $('#input').scrollTop(0)
+        .focus()
+        [0].setSelectionRange(0,0)
+    }, 10)
+    compileTestML()
+  })
+}
+
+$(
+  $.get("./yaml/list", function(text) {
+    var yaml_tests = _.split(text, '\n')
+    yaml_tests.pop()
+    var select = $('#yaml')
+    for (var i in yaml_tests) {
+      id = yaml_tests[i]
+      $('<option />', {value: id, text: id}).appendTo(select)
+    }
+  })
+)
+
+
+$('#input')[0].value = sample_testml
+compileTestML()
+$('#input').on('keyup', _.debounce(compileTestML, 333))
+</script>
+
+
+<style>
+body {
+  font-family: sans-serif;
+}
+#nav {
+  width: 100%;
+  padding-bottom: 5px;
+}
+textarea {
+  font-family: monospace;
+  width: 500px;
+  height: 500px;
+}
+#explanation {
+  padding-top: 15px;
+  width: 500px;
+}
+#update {
+  background-color: yellow;
+}
+</style>
