@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# shellcheck disable=1090,2034
+
+set -e
+
+testml-run-file() {
+  cat <<===
+Now it's time for you to implement Haskell Runtime Support for TestML!!!
+
+Your compiled testml file is '$1':
+$(head $1)
+...
+===
+}
+
+: "${TESTML_BIN:=testml-haskell}"
+: "${TESTML_LANG:=ghc}"
+: "${TESTML_MODULE:=TestML.Run.TAP}"
+: "${TESTML_LIB:=$TESTML_ROOT/lib/haskell}"
+: "${TESTML_BRIDGE:=TestMLBridge}"
+export TESTML_{BIN,LANG,MODULE,LIB,BRIDGE}
+
+[[ -n $TESTML_SOURCED ]] ||
+  source "${TESTML_ROOT:-$(dirname "$0")/..}/bin/testml"
+
+testml_runner_sourced=true
+
+[[ $0 != "${BASH_SOURCE[0]}" ]] || testml-run "$@"
