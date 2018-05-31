@@ -119,12 +119,15 @@ Aliases:
 }
 
 cmd-env() {
-  if [[ -n $1 ]]; then
-    export TESTML_INPUT=$1
-    set-testml-vars
-  fi
+  [[ -n $1 ]] ||
+    die "usage: testml --env <testml-file>"
 
-  env | grep '^TESTML_'
+  export TESTML_INPUT=$1
+
+  set-testml-vars
+  set-testml-lib-vars
+
+  env | grep '^TESTML_' | sort
 }
 
 make-clean() {
