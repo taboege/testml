@@ -29,9 +29,10 @@ version     Print TestML version
 h,help      Show the command summary
  
 R,run=      TestML runner to use (see: testml --list)
+B,bridge=   TestML bridge module to use
+I,lib=      Directory path to find bridge modules
+P,path=     Directory path to find test files and imports
 M,module=   TestML runner module to use
-I,lib=      Directory path to find TestML modules
-P,path=     Directory path to find TestML test files
 C,config=   TestML config file
  
 x,debug     Print lots of debugging info
@@ -41,11 +42,6 @@ source "$TESTML_ROOT/bin/getopt.sh"
 
 testml-run-cli() {
   get-options "$@"
-
-  if [[ -n $eval_tml ]]; then
-    arguments=(".testml_eval")
-    echo -n "$eval_tml" > "${arguments[0]}"
-  fi
 
   set -- "${arguments[@]}"
 
@@ -66,7 +62,7 @@ cmd-run() {
       source "$TESTML_BIN"
     fi
 
-    set-more-testml-vars
+    set-testml-lib-vars
 
     testml-run-file "$TESTML_EXEC" || true
   done
@@ -79,12 +75,12 @@ cmd-compile() {
     set-testml-vars
 
     if $option_print; then
-      testml-compiler "$TESTML_PATH"
+      testml-compiler "$TESTML_FILE"
 
     else
       mkdir -p "$TESTML_CACHE"
 
-      testml-compiler "$TESTML_PATH" > "$TESTML_EXEC" || {
+      testml-compiler "$TESTML_FILE" > "$TESTML_EXEC" || {
         rc=$?
         rm -f "$TESTML_EXEC"
         exit $rc
@@ -148,16 +144,10 @@ cmd-version() {
 
 get-options() {
   local option_eval_lines=1
-  eval_tml=
-
   GETOPT_ARGS='@arguments' \
     getopt "$@"
 
-  if [[ ${#option_eval[@]} -gt 0 ]]; then
-    for line in "${option_eval[@]}"; do
-      eval_tml+="$line"$'\n'
-    done
-  fi
+  setup-eval
 
   $option_debug && set -x
 
@@ -165,6 +155,18 @@ get-options() {
     make-clean
 
     [[ ${#arguments[@]} -gt 0 ]] || exit 1
+  fi
+
+  if [[ -n $option_bridge ]]; then
+    export TESTML_BRIDGE="$option_bridge"
+  fi
+  if [[ -n $option_lib ]]; then
+    TESTML_LIB="$(cd $option_lib && pwd)"
+    export TESTML_LIB
+  fi
+  if [[ -n $option_path ]]; then
+    TESTML_PATH="$(cd $option_path && pwd)"
+    export TESTML_PATH
   fi
 
   if $option_env; then
@@ -183,4 +185,29 @@ get-options() {
     export TESTML_RUN="$option_run"
 
   true
+}
+
+setup-eval() {
+  [[ ${#option_eval[@]} -gt 0 ]] || return 0
+
+  eval_tml=''
+  eval_file=.testml_eval
+  rm -f "$eval_file"
+  touch "$eval_file"
+
+  for line in "${option_eval[@]}"; do
+    echo "$line" >> $eval_file
+  done
+
+  for file in "${arguments[@]}"; do
+    [[ -f $file ]] ||
+      die "File not found '$file'"
+
+    echo >> "$eval_file"
+    echo >> "$eval_file"
+    cat "$file" >> "$eval_file"
+    echo -n "$eval_tml" > "${arguments[0]}"
+  done
+
+  arguments=(".testml_eval")
 }
