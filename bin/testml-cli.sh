@@ -42,6 +42,11 @@ source "$TESTML_ROOT/bin/getopt.sh"
 testml-run-cli() {
   get-options "$@"
 
+  if [[ -n $eval_tml ]]; then
+    arguments=(".testml_eval")
+    echo -n "$eval_tml" > "${arguments[0]}"
+  fi
+
   set -- "${arguments[@]}"
 
   "cmd-$cmd" "$@"
@@ -142,8 +147,17 @@ cmd-version() {
 }
 
 get-options() {
+  local option_eval_lines=1
+  eval_tml=
+
   GETOPT_ARGS='@arguments' \
     getopt "$@"
+
+  if [[ ${#option_eval[@]} -gt 0 ]]; then
+    for line in "${option_eval[@]}"; do
+      eval_tml+="$line"$'\n'
+    done
+  fi
 
   $option_debug && set -x
 
