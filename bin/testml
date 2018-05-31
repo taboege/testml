@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# shellcheck disable=1090,2034
+# shellcheck disable=1090,2034,2154
 
 set -e
 
@@ -44,10 +44,12 @@ run-cli() {
 }
 
 check-input-file() {
-  [[ $# == 1 && -n $1 ]] ||
-    die "Can't determine testml source file"
-  [[ -e $1 ]] ||
-    die "TestML input file '$1' does not exist"
+  if [[ $1 != '-' ]]; then
+    [[ $# == 1 && -n $1 ]] ||
+      die "Can't determine testml source file"
+    [[ -e $1 ]] ||
+      die "TestML input file '$1' does not exist"
+  fi
 
   export TESTML_INPUT=$1
 }
@@ -83,7 +85,11 @@ set-testml-vars() {
   export TESTML_DIR
   TESTML_FILENAME=$(basename "$TESTML_INPUT")
   export TESTML_FILENAME
-  export TESTML_FILE="$TESTML_DIR/$TESTML_FILENAME"
+  if [[ $TESTML_INPUT == '-' ]]; then
+    export TESTML_FILE='-'
+  else
+    export TESTML_FILE="$TESTML_DIR/$TESTML_FILENAME"
+  fi
   export TESTML_CACHE="$TESTML_DIR/.testml"
   export TESTML_EXEC="$TESTML_CACHE/$TESTML_FILENAME.json"
 }
@@ -103,14 +109,20 @@ set-testml-lib-vars() {
 }
 
 compile-testml() {
-  [[ -e $TESTML_EXEC && ! -s $TESTML_EXEC ]] &&
+  [[ $TESTML_INPUT == '-' || -e $TESTML_EXEC && ! -s $TESTML_EXEC ]] &&
     rm -f "$TESTML_EXEC"
   [[ $TESTML_EXEC -nt $TESTML_FILE ]] &&
     return 0
 
   mkdir -p "$TESTML_CACHE"
 
-  testml-compiler "$TESTML_FILE" > "$TESTML_EXEC" || {
+  (
+    if [[ -n $testml_eval_input ]]; then
+      echo "$testml_eval_input" | testml-compiler -
+    else
+      testml-compiler "$TESTML_FILE"
+    fi
+  ) > "$TESTML_EXEC" || {
     local rc=$?
     rm -f "$TESTML_EXEC"
     return "$rc"

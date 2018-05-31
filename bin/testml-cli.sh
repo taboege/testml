@@ -1,6 +1,6 @@
 #! bash
 
-# shellcheck disable=1090,2034,2154
+# shellcheck disable=1090,2034,2153,2154
 GETOPT_SPEC="\
   $(basename "$0") <options...> [<testml-file>...]
 
@@ -21,6 +21,7 @@ Options:
  
 c,compile   Compile a TestML file to the cache directory
 e,eval=     Specify TestML input on command line
+a,all       Combine all input files into one text
 p,print     Print compiled TestML to stdout
 l,list      List all the TestML langauge/framework runners
 env         Show the TestML environment details
@@ -52,6 +53,8 @@ cmd-run() {
   for file; do
     check-input-file "$file"
 
+    add-eval-text
+
     set-testml-bin
 
     set-testml-vars
@@ -71,6 +74,8 @@ cmd-run() {
 cmd-compile() {
   for file; do
     check-input-file "$file"
+
+    add-eval-text
 
     set-testml-vars
 
@@ -161,11 +166,11 @@ get-options() {
     export TESTML_BRIDGE="$option_bridge"
   fi
   if [[ -n $option_lib ]]; then
-    TESTML_LIB="$(cd $option_lib && pwd)"
+    TESTML_LIB="$(cd "$option_lib" && pwd)"
     export TESTML_LIB
   fi
   if [[ -n $option_path ]]; then
-    TESTML_PATH="$(cd $option_path && pwd)"
+    TESTML_PATH="$(cd "$option_path" && pwd)"
     export TESTML_PATH
   fi
 
@@ -188,26 +193,30 @@ get-options() {
 }
 
 setup-eval() {
-  [[ ${#option_eval[@]} -gt 0 ]] || return 0
-
-  eval_tml=''
-  eval_file=.testml_eval
-  rm -f "$eval_file"
-  touch "$eval_file"
+  testml_eval_input=''
 
   for line in "${option_eval[@]}"; do
-    echo "$line" >> $eval_file
+    testml_eval_input+="$line"$'\n'
   done
 
-  for file in "${arguments[@]}"; do
-    [[ -f $file ]] ||
-      die "File not found '$file'"
+  testml_eval_text=$testml_eval_input
 
-    echo >> "$eval_file"
-    echo >> "$eval_file"
-    cat "$file" >> "$eval_file"
-    echo -n "$eval_tml" > "${arguments[0]}"
-  done
+  if $option_all; then
+    [[ ${#arguments[@]} -gt 0 ]] ||
+      die "--all used but no input files specified"
+    for file in "${arguments[@]}"; do
+      testml_eval_input="$testml_eval_input$(cat "$file")"$'\n'
+    done
+    arguments=('-')
+  fi
+}
 
-  arguments=(".testml_eval")
+add-eval-text() {
+  [[ $file != '-' && -n $testml_eval_text ]] || return 0
+
+  testml_eval_input="$testml_eval_text$(cat "$file")"$'\n'
+
+  file='-'
+
+  export TESTML_INPUT='-'
 }
