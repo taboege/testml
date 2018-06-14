@@ -1,7 +1,7 @@
 export TESTML_ROOT := $(PWD)
 export PATH := $(TESTML_ROOT)/bin:$(PATH)
 
-TAP_RUN := coffee node perl perl6 python
+TAP_RUN := coffee gambas node perl perl6 python
 TAP_TESTS := $(TAP_RUN:%=test-%-tap)
 UNIT_RUN := python
 UNIT_TESTS := $(UNIT_RUN:%=test-%-unit)
@@ -61,7 +61,7 @@ else
 	TESTML_RUN=$(@:test-%=%) prove -v -j$(j) test/$(subst -tap,,$(subst test-,,$@))/testml/*.tml
 endif
 
-test-perl-tap test-perl6-tap test-python-tap: testml-tml
+test-gambas-tap test-perl-tap test-perl6-tap test-python-tap: testml-tml
 ifdef test
 	TESTML_RUN=$(@:test-%=%) prove -v -j$(j) $(test)
 else
